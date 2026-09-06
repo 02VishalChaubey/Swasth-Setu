@@ -1,0 +1,295 @@
+{
+  "info": {
+    "name": "Swasth Setu - Rural Health Portal REST API Collection (SIH 2026)",
+    "_postman_id": "swasth-setu-sih-2026-v1",
+    "description": "Comprehensive Postman collection for all Swasth Setu backend API endpoints covering Auth, Dashboard, Health Facilities, Appointments, Live Queues, Digital Triage, Medical Records, Vitals, Pharmacies, Emergency SOS, and Admin Operations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "demo-patient-token",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register Patient",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rajesh Kumar\",\n  \"email\": \"rajesh.kumar@swasthsetu.gov.in\",\n  \"phone\": \"+91 98310 44921\",\n  \"password\": \"password123\",\n  \"role\": \"PATIENT\",\n  \"district\": \"Howrah\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rajesh.kumar@swasthsetu.gov.in\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Patient Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/patient/dashboard", "host": ["{{baseUrl}}"], "path": ["api", "patient", "dashboard"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Health Centres & GPS Proximity",
+      "item": [
+        {
+          "name": "List Health Centres",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/centres?district=Howrah&openNow=true", "host": ["{{baseUrl}}"], "path": ["api", "centres"], "query": [{ "key": "district", "value": "Howrah" }, { "key": "openNow", "value": "true" }] }
+          }
+        },
+        {
+          "name": "Find Nearby Centres (Haversine Distance)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/centres/nearby?lat=22.5726&lng=88.3639&radiusKm=25", "host": ["{{baseUrl}}"], "path": ["api", "centres", "nearby"], "query": [{ "key": "lat", "value": "22.5726" }, { "key": "lng", "value": "88.3639" }, { "key": "radiusKm", "value": "25" }] }
+          }
+        },
+        {
+          "name": "Get Health Centre By ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/centres/centre-01", "host": ["{{baseUrl}}"], "path": ["api", "centres", "centre-01"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Doctor Appointments",
+      "item": [
+        {
+          "name": "Get Doctors List",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/doctors", "host": ["{{baseUrl}}"], "path": ["api", "doctors"] }
+          }
+        },
+        {
+          "name": "Get Doctor Available Slots",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/doctors/doc-01/availability", "host": ["{{baseUrl}}"], "path": ["api", "doctors", "doc-01", "availability"] }
+          }
+        },
+        {
+          "name": "Book Appointment (Prevents Double Booking)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctorId\": \"doc-01\",\n  \"healthCentreId\": \"centre-01\",\n  \"appointmentDate\": \"2026-10-24\",\n  \"timeSlot\": \"10:30 AM\",\n  \"appointmentType\": \"IN_PERSON\",\n  \"symptoms\": \"Persistent headache and mild hypertension check\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/appointments", "host": ["{{baseUrl}}"], "path": ["api", "appointments"] }
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/appointments/apt-01/cancel", "host": ["{{baseUrl}}"], "path": ["api", "appointments", "apt-01", "cancel"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Live OPD Queue Management",
+      "item": [
+        {
+          "name": "Get My Active Queue Token & Wait Time",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/queue/my-status", "host": ["{{baseUrl}}"], "path": ["api", "queue", "my-status"] }
+          }
+        },
+        {
+          "name": "Join Queue for Walk-in Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"centreId\": \"centre-01\",\n  \"doctorId\": \"doc-01\",\n  \"priority\": \"ROUTINE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/queue/join", "host": ["{{baseUrl}}"], "path": ["api", "queue", "join"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. AI & Rule-Based Digital Triage",
+      "item": [
+        {
+          "name": "Evaluate Symptoms (Emergency Case)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symptoms\": [\"chest pain\", \"shortness of breath\"],\n  \"severity\": 8,\n  \"duration\": \"1 hour\",\n  \"age\": 45\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/triage", "host": ["{{baseUrl}}"], "path": ["api", "triage"] }
+          }
+        },
+        {
+          "name": "Evaluate Symptoms (Routine Cold)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symptoms\": [\"mild cough\", \"sore throat\"],\n  \"severity\": 2,\n  \"duration\": \"2 days\",\n  \"age\": 30\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/triage", "host": ["{{baseUrl}}"], "path": ["api", "triage"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Medical Records & Vitals",
+      "item": [
+        {
+          "name": "Get Patient Medical Records",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/records", "host": ["{{baseUrl}}"], "path": ["api", "records"] }
+          }
+        },
+        {
+          "name": "Get Latest Vitals",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/vitals/latest", "host": ["{{baseUrl}}"], "path": ["api", "vitals", "latest"] }
+          }
+        },
+        {
+          "name": "Record Vital Signs",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{authToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloodPressureSystolic\": 126,\n  \"bloodPressureDiastolic\": 82,\n  \"pulse\": 74,\n  \"bloodSugar\": 108,\n  \"spo2\": 98,\n  \"temperature\": 98.6\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/vitals", "host": ["{{baseUrl}}"], "path": ["api", "vitals"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Pharmacies & Medicine Availability",
+      "item": [
+        {
+          "name": "Search Medicine Stock in Jan Aushadhi",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/pharmacies/search?medicine=paracetamol", "host": ["{{baseUrl}}"], "path": ["api", "pharmacies", "search"], "query": [{ "key": "medicine", "value": "paracetamol" }] }
+          }
+        },
+        {
+          "name": "Find Nearby Pharmacies",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/pharmacies/nearby?lat=22.5726&lng=88.3639", "host": ["{{baseUrl}}"], "path": ["api", "pharmacies", "nearby"], "query": [{ "key": "lat", "value": "22.5726" }, { "key": "lng", "value": "88.3639" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Emergency SOS & Helplines",
+      "item": [
+        {
+          "name": "Get National Emergency Helplines (108, 112, 100)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/emergency/helplines", "host": ["{{baseUrl}}"], "path": ["api", "emergency", "helplines"] }
+          }
+        },
+        {
+          "name": "Dispatch Emergency Alert Coordinates",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientPhone\": \"+91 98310 44921\",\n  \"latitude\": 22.5726,\n  \"longitude\": 88.3639,\n  \"locationDescription\": \"Village Ramgarh, Block 2, Howrah\",\n  \"emergencyType\": \"CHEST_PAIN\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/emergency/request", "host": ["{{baseUrl}}"], "path": ["api", "emergency", "request"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Admin & System Monitoring",
+      "item": [
+        {
+          "name": "Get System Stats",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/admin/stats", "host": ["{{baseUrl}}"], "path": ["api", "admin", "stats"] }
+          }
+        },
+        {
+          "name": "Get Queue Summary Across Centres",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/admin/queues", "host": ["{{baseUrl}}"], "path": ["api", "admin", "queues"] }
+          }
+        }
+      ]
+    }
+  ]
+}

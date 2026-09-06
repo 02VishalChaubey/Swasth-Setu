@@ -1,0 +1,485 @@
+// Swasth Setu - Rural Health Portal (SIH 2026)
+// Production Prisma Schema for PostgreSQL
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  HEALTH_WORKER
+  ADMIN
+}
+
+enum FacilityType {
+  PRIMARY_HEALTH_CENTRE
+  COMMUNITY_HEALTH_CENTRE
+  DISTRICT_HOSPITAL
+  SUB_CENTRE
+  CLINIC
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum QueuePriority {
+  EMERGENCY
+  URGENT
+  ROUTINE
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  IN_CONSULTATION
+  COMPLETED
+  SKIPPED
+}
+
+enum ReferralStatus {
+  REFERRED
+  ACCEPTED
+  SCHEDULED
+  IN_CONSULTATION
+  COMPLETED
+}
+
+enum RecordType {
+  PRESCRIPTION
+  LAB_REPORT
+  DIAGNOSIS
+  REFERRAL
+  CONSULTATION
+}
+
+enum EmergencyStatus {
+  REPORTED
+  ACKNOWLEDGED
+  DISPATCHED
+  RESOLVED
+  CANCELLED
+}
+
+// -------------------------------------------------------------
+// 1. User & Identity Management
+// -------------------------------------------------------------
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  phone        String        @unique
+  passwordHash String
+  role         Role          @default(PATIENT)
+  isActive     Boolean       @default(true)
+  refreshToken String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  patient      Patient?
+  doctor       Doctor?
+  healthWorker HealthWorker?
+  notifications Notification[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+}
+
+model Patient {
+  id               String            @id @default(uuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  email            String            @unique
+  phone            String            @unique
+  dateOfBirth      DateTime
+  gender           String
+  bloodGroup       String?
+  height           String?
+  weight           String?
+  address          String
+  village          String?
+  district         String
+  abhaId           String            @unique // Ayushman Bharat Health Account ID
+  emergencyContact String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  appointments     Appointment[]
+  queueEntries     QueueEntry[]
+  triageRecords    TriageRecord[]
+  medicalRecords   MedicalRecord[]
+  vitals           Vital[]
+  referrals        Referral[]
+  emergencyRequests EmergencyRequest[]
+
+  @@index([district])
+  @@index([abhaId])
+  @@index([phone])
+}
+
+model Doctor {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  email              String             @unique
+  phone              String             @unique
+  specialization     String
+  experienceYears    Int                @default(0)
+  qualification      String
+  registrationNumber String             @unique
+  isVerified         Boolean            @default(false)
+  rating             Float              @default(5.0)
+  bio                String?
+  avatarUrl          String?
+  healthCentreId     String?
+  healthCentre       HealthCentre?      @relation(fields: [healthCentreId], references: [id])
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  availabilities     DoctorAvailability[]
+  timeSlots          TimeSlot[]
+  appointments       Appointment[]
+  queueEntries       QueueEntry[]
+  medicalRecords     MedicalRecord[]
+  referralsInitiated Referral[]         @relation("ReferringDoctor")
+  referralsReceived  Referral[]         @relation("ReceivingDoctor")
+
+  @@index([specialization])
+  @@index([healthCentreId])
+}
+
+model HealthWorker {
+  id                String       @id @default(uuid())
+  userId            String       @unique
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  email             String       @unique
+  phone             String       @unique
+  roleTitle         String       // e.g. ASHA, ANM, MPHW
+  assignedVillage   String
+  assignedCentreId  String?
+  assignedCentre    HealthCentre? @relation(fields: [assignedCentreId], references: [id])
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  vitalsRecorded    Vital[]
+
+  @@index([assignedVillage])
+}
+
+// -------------------------------------------------------------
+// 2. Health Facilities & Pharmacy Infrastructure
+// -------------------------------------------------------------
+model HealthCentre {
+  id                   String            @id @default(uuid())
+  name                 String
+  type                 FacilityType      @default(PRIMARY_HEALTH_CENTRE)
+  address              String
+  village              String?
+  district             String
+  city                 String
+  state                String            @default("West Bengal")
+  pincode              String
+  latitude             Float
+  longitude            Float
+  phone                String
+  email                String?
+  openingHours         String            @default("09:00 AM - 05:00 PM")
+  isOpen24x7           Boolean           @default(false)
+  totalBeds            Int               @default(10)
+  availableBeds        Int               @default(5)
+  availableServices    String[]          @default(["General Medicine", "Outpatient Care"])
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  doctors              Doctor[]
+  workers              HealthWorker[]
+  appointments         Appointment[]
+  queueEntries         QueueEntry[]
+  sourceReferrals      Referral[]        @relation("SourceCentre")
+  destinationReferrals Referral[]        @relation("DestinationCentre")
+  medicalRecords       MedicalRecord[]
+  triageRecords        TriageRecord[]
+
+  @@index([district])
+  @@index([type])
+  @@index([latitude, longitude])
+}
+
+model Pharmacy {
+  id           String     @id @default(uuid())
+  name         String
+  address      String
+  district     String
+  latitude     Float
+  longitude    Float
+  phone        String
+  openingHours String     @default("08:00 AM - 10:00 PM")
+  is24x7       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  medicines    Medicine[]
+
+  @@index([district])
+  @@index([latitude, longitude])
+}
+
+model Medicine {
+  id             String    @id @default(uuid())
+  pharmacyId     String
+  pharmacy       Pharmacy  @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  name           String
+  genericName    String
+  category       String
+  stockQuantity  Int       @default(0)
+  unitPrice      Float     @default(0.0)
+  isAvailable    Boolean   @default(true)
+  lastRestockedAt DateTime @default(now())
+
+  @@index([name])
+  @@index([genericName])
+}
+
+// -------------------------------------------------------------
+// 3. Appointments & Scheduling
+// -------------------------------------------------------------
+model DoctorAvailability {
+  id                  String   @id @default(uuid())
+  doctorId            String
+  doctor              Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek           Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime           String   // "09:00"
+  endTime             String   // "13:00"
+  slotDurationMinutes Int      @default(15)
+  isAvailable         Boolean  @default(true)
+
+  @@unique([doctorId, dayOfWeek])
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date      DateTime
+  startTime String   // "09:00 AM"
+  endTime   String   // "09:15 AM"
+  isBooked  Boolean  @default(false)
+
+  @@index([doctorId, date])
+}
+
+model Appointment {
+  id               String            @id @default(uuid())
+  bookingReference String            @unique // e.g. SS-8492-49
+  patientId        String
+  patient          Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId         String
+  doctor           Doctor            @relation(fields: [doctorId], references: [id])
+  healthCentreId   String
+  healthCentre     HealthCentre      @relation(fields: [healthCentreId], references: [id])
+  appointmentDate  DateTime
+  timeSlot         String            // e.g. "09:00 AM"
+  appointmentType  String            @default("IN_PERSON") // IN_PERSON, TELECONSULTATION, ASHA_VISIT
+  status           AppointmentStatus @default(CONFIRMED)
+  symptoms         String?
+  notes            String?
+  queueToken       String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([doctorId, appointmentDate, timeSlot])
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([healthCentreId])
+  @@index([appointmentDate])
+}
+
+// -------------------------------------------------------------
+// 4. Live Queue Management
+// -------------------------------------------------------------
+model QueueEntry {
+  id                   String        @id @default(uuid())
+  tokenNumber          String        // e.g. T-142
+  patientId            String
+  patient              Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  healthCentreId       String
+  healthCentre         HealthCentre  @relation(fields: [healthCentreId], references: [id])
+  doctorId             String?
+  doctor               Doctor?       @relation(fields: [doctorId], references: [id])
+  priority             QueuePriority @default(ROUTINE)
+  position             Int           @default(1)
+  status               QueueStatus   @default(WAITING)
+  estimatedWaitMinutes Int           @default(15)
+  roomNumber           String        @default("Room 101")
+  calledAt             DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([healthCentreId, status])
+  @@index([patientId])
+  @@index([tokenNumber])
+}
+
+// -------------------------------------------------------------
+// 5. Digital Triage & Safety Rule Engine
+// -------------------------------------------------------------
+model TriageRecord {
+  id                String        @id @default(uuid())
+  patientId         String?
+  patient           Patient?      @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  symptoms          String[]
+  severityScore     Int           @default(1) // 1 to 10
+  priority          QueuePriority @default(ROUTINE)
+  recommendedAction String
+  route             String        @default("PHC_VISIT") // "108", "HOSPITAL_EMERGENCY", "PHC_VISIT", "HOME_CARE"
+  matchedRules      String[]
+  score             Int           @default(0)
+  assignedCentreId  String?
+  assignedCentre    HealthCentre? @relation(fields: [assignedCentreId], references: [id])
+  status            String        @default("EVALUATED") // EVALUATED, QUEUED, RESOLVED
+  disclaimer        String        @default("This is a triage aid and not a medical diagnosis.")
+  createdAt         DateTime      @default(now())
+
+  @@index([priority])
+  @@index([patientId])
+}
+
+model TriageRule {
+  id                String        @id @default(uuid())
+  ruleName          String
+  symptomKeywords   String[]
+  minSeverity       Int           @default(1)
+  priority          QueuePriority @default(ROUTINE)
+  recommendedRoute  String        // "108", "HOSPITAL", "PHC"
+  actionDescription String
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+}
+
+// -------------------------------------------------------------
+// 6. Medical Records & Longitudinal Vitals
+// -------------------------------------------------------------
+model MedicalRecord {
+  id             String       @id @default(uuid())
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String?
+  doctor         Doctor?      @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  healthCentreId String?
+  healthCentre   HealthCentre? @relation(fields: [healthCentreId], references: [id], onDelete: SetNull)
+  recordType     RecordType   @default(PRESCRIPTION)
+  title          String
+  description    String?
+  diagnosis      String?
+  fileUrl        String?
+  medications    Json?        // [{ name, dosage, frequency, duration }]
+  labParameters  Json?        // [{ test, value, normalRange, status }]
+  recordDate     DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([patientId])
+  @@index([recordType])
+  @@index([recordDate])
+}
+
+model Vital {
+  id                     String        @id @default(uuid())
+  patientId              String
+  patient                Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  recordedById           String?
+  recordedByWorker       HealthWorker? @relation(fields: [recordedById], references: [id])
+  bloodPressureSystolic  Int?          // mmHg
+  bloodPressureDiastolic Int?          // mmHg
+  pulse                  Int?          // bpm
+  bloodSugar             Float?        // mg/dL
+  spo2                   Float?        // %
+  temperature            Float?        // Fahrenheit
+  notes                  String?
+  recordedAt             DateTime      @default(now())
+
+  @@index([patientId])
+  @@index([recordedAt])
+}
+
+// -------------------------------------------------------------
+// 7. Referral Management
+// -------------------------------------------------------------
+model Referral {
+  id                  String         @id @default(uuid())
+  referralNumber      String         @unique // e.g. REF-9921
+  patientId           String
+  patient             Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  sourceCentreId      String
+  sourceCentre        HealthCentre   @relation("SourceCentre", fields: [sourceCentreId], references: [id])
+  destinationCentreId String
+  destinationCentre   HealthCentre   @relation("DestinationCentre", fields: [destinationCentreId], references: [id])
+  referringDoctorId   String?
+  referringDoctor     Doctor?        @relation("ReferringDoctor", fields: [referringDoctorId], references: [id])
+  receivingDoctorId   String?
+  receivingDoctor     Doctor?        @relation("ReceivingDoctor", fields: [receivingDoctorId], references: [id])
+  reason              String
+  priority            QueuePriority  @default(ROUTINE)
+  status              ReferralStatus @default(REFERRED)
+  clinicalNotes       String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([patientId])
+  @@index([sourceCentreId])
+  @@index([destinationCentreId])
+  @@index([status])
+}
+
+// -------------------------------------------------------------
+// 8. Emergency Requests & Responders
+// -------------------------------------------------------------
+model EmergencyRequest {
+  id                  String          @id @default(uuid())
+  patientId           String?
+  patient             Patient?        @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  patientPhone        String
+  latitude            Float
+  longitude           Float
+  locationDescription String
+  emergencyType       String          // e.g. "CHEST_PAIN", "SNAKE_BITE", "ROAD_ACCIDENT", "MATERNAL"
+  status              EmergencyStatus @default(REPORTED)
+  dispatchedUnit      String?         // e.g. "Ambulance WB-04-108A"
+  notes               String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// -------------------------------------------------------------
+// 9. Notifications
+// -------------------------------------------------------------
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // "QUEUE", "APPOINTMENT", "LAB", "REFERRAL"
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+}

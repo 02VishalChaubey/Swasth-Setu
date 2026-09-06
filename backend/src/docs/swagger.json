@@ -1,0 +1,275 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Swasth Setu – Rural Health Portal REST API",
+    "version": "1.0.0",
+    "description": "Production REST API backend for Smart India Hackathon 2026. Powers rural healthcare delivery, digital triage, doctor appointments, live OPD queue tracking, Ayushman Bharat health records, and emergency SOS routing.",
+    "contact": {
+      "name": "Swasth Setu SIH 2026 Team",
+      "email": "support@swasthsetu.gov.in"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "/api",
+      "description": "Direct API Gateway"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your JWT token or use 'demo-patient-token'"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "type": "object" },
+          "message": { "type": "string", "example": "Request successful" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string", "example": "Invalid request parameters" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register a new citizen patient or health official",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "phone", "password"],
+                "properties": {
+                  "name": { "type": "string", "example": "Rajesh Kumar" },
+                  "email": { "type": "string", "example": "rajesh.kumar@swasthsetu.gov.in" },
+                  "phone": { "type": "string", "example": "+91 98310 44921" },
+                  "password": { "type": "string", "example": "password123" },
+                  "role": { "type": "string", "enum": ["PATIENT", "DOCTOR", "HEALTH_WORKER", "ADMIN"], "default": "PATIENT" },
+                  "district": { "type": "string", "example": "Howrah" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created with JWT access and refresh tokens" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "User already exists" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Authenticate patient, doctor, worker or admin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "rajesh.kumar@swasthsetu.gov.in" },
+                  "phone": { "type": "string", "example": "+91 98310 44921" },
+                  "password": { "type": "string", "example": "password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Authenticated successfully with JWT" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/patient/dashboard": {
+      "get": {
+        "tags": ["Patient Dashboard"],
+        "summary": "Fetch aggregated patient home status, queue position, next appointment & follow-up",
+        "responses": {
+          "200": { "description": "Patient dashboard payload directly feeding React frontend" }
+        }
+      }
+    },
+    "/api/centres": {
+      "get": {
+        "tags": ["Health Centres"],
+        "summary": "List and filter public health centres, PHCs, and hospitals",
+        "parameters": [
+          { "name": "district", "in": "query", "schema": { "type": "string" } },
+          { "name": "facilityType", "in": "query", "schema": { "type": "string" } },
+          { "name": "openNow", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "medicineAvailable", "in": "query", "schema": { "type": "boolean" } }
+        ],
+        "responses": {
+          "200": { "description": "Array of health centres with live queue and bed indicators" }
+        }
+      }
+    },
+    "/api/centres/nearby": {
+      "get": {
+        "tags": ["Health Centres"],
+        "summary": "Locate nearest health facilities sorted by Haversine distance",
+        "parameters": [
+          { "name": "lat", "in": "query", "required": true, "schema": { "type": "number", "example": 22.5726 } },
+          { "name": "lng", "in": "query", "required": true, "schema": { "type": "number", "example": 88.3639 } },
+          { "name": "radiusKm", "in": "query", "schema": { "type": "number", "default": 50 } }
+        ],
+        "responses": {
+          "200": { "description": "Health centres sorted by distanceKm" }
+        }
+      }
+    },
+    "/api/appointments": {
+      "post": {
+        "tags": ["Appointments"],
+        "summary": "Book OPD or teleconsultation appointment (prevents double booking)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["doctorId", "healthCentreId", "appointmentDate", "timeSlot"],
+                "properties": {
+                  "doctorId": { "type": "string", "example": "doc-01" },
+                  "healthCentreId": { "type": "string", "example": "centre-01" },
+                  "appointmentDate": { "type": "string", "example": "2026-10-24" },
+                  "timeSlot": { "type": "string", "example": "10:30 AM" },
+                  "appointmentType": { "type": "string", "enum": ["IN_PERSON", "TELECONSULTATION", "ASHA_VISIT"], "default": "IN_PERSON" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Appointment confirmed with booking reference and queue token" },
+          "409": { "description": "Slot already booked" }
+        }
+      },
+      "get": {
+        "tags": ["Appointments"],
+        "summary": "Retrieve appointments for patient or doctor",
+        "responses": {
+          "200": { "description": "List of appointments" }
+        }
+      }
+    },
+    "/api/queue/my-status": {
+      "get": {
+        "tags": ["Queue Management"],
+        "summary": "Live tracking of active token, position, wait time, and room number",
+        "responses": {
+          "200": { "description": "Live queue position (e.g. YOUR POSITION: 08, 35 mins wait)" }
+        }
+      }
+    },
+    "/api/triage": {
+      "post": {
+        "tags": ["Digital Triage"],
+        "summary": "Submit symptoms for urgency classification (FastAPI AI Engine)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["symptoms", "severity"],
+                "properties": {
+                  "symptoms": { "type": "array", "items": { "type": "string" }, "example": ["chest pain", "sweating"] },
+                  "severity": { "type": "integer", "minimum": 1, "maximum": 10, "example": 8 },
+                  "duration": { "type": "string", "example": "2 hours" },
+                  "age": { "type": "integer", "example": 45 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Triage urgency rating (EMERGENCY/URGENT/ROUTINE), action, route, and legal disclaimer" }
+        }
+      }
+    },
+    "/api/records": {
+      "get": {
+        "tags": ["Medical Records"],
+        "summary": "List patient longitudinal medical records, prescriptions, and lab tests",
+        "parameters": [
+          { "name": "recordType", "in": "query", "schema": { "type": "string", "enum": ["PRESCRIPTION", "LAB_REPORT", "DIAGNOSIS", "REFERRAL"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of medical records" }
+        }
+      }
+    },
+    "/api/vitals": {
+      "get": {
+        "tags": ["Vitals"],
+        "summary": "Get longitudinal vitals history (BP, Pulse, Blood Sugar, SpO2, Temp)",
+        "responses": {
+          "200": { "description": "Array of vital readings" }
+        }
+      },
+      "post": {
+        "tags": ["Vitals"],
+        "summary": "Record new vital measurements",
+        "responses": {
+          "201": { "description": "Vital signs recorded" }
+        }
+      }
+    },
+    "/api/emergency/request": {
+      "post": {
+        "tags": ["Emergency & SOS"],
+        "summary": "Dispatch emergency alert coordinates to state 108 ambulance grid",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["patientPhone", "latitude", "longitude", "locationDescription"],
+                "properties": {
+                  "patientPhone": { "type": "string", "example": "+91 98310 44921" },
+                  "latitude": { "type": "number", "example": 22.5726 },
+                  "longitude": { "type": "number", "example": 88.3639 },
+                  "locationDescription": { "type": "string", "example": "Village Ramgarh, Block 2, Howrah" },
+                  "emergencyType": { "type": "string", "example": "CHEST_PAIN" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Emergency registered with 108 helpline instruction" }
+        }
+      }
+    }
+  }
+}

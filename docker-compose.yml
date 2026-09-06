@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Relational Database (TLS & Production Ready)
+  postgres:
+    image: postgres:16-alpine
+    container_name: swasth_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: swasth_user
+      POSTGRES_PASSWORD: swasth_pass_2026
+      POSTGRES_DB: swasth_setu_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swasth_user -d swasth_setu_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - swasth_network
+
+  # 2. Python FastAPI AI & Digital Triage Microservice
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: swasth_ai_service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - ENVIRONMENT=production
+    networks:
+      - swasth_network
+
+  # 3. Node.js + Express Main API Gateway & Microservices
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: swasth_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DATABASE_URL=postgresql://swasth_user:swasth_pass_2026@postgres:5432/swasth_setu_db?schema=public
+      - JWT_ACCESS_SECRET=swasth_setu_jwt_access_secret_sih_2026_super_secure_key
+      - JWT_REFRESH_SECRET=swasth_setu_jwt_refresh_secret_sih_2026_long_lived_key
+      - AI_SERVICE_URL=http://ai-service:8000
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:5173
+    networks:
+      - swasth_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  swasth_network:
+    driver: bridge
