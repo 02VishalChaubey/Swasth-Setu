@@ -1,5 +1,5 @@
 {
-  "name": "Swasth Setu",
+  "name": "Swasthya Rekha",
   "description": "Rural Health Portal for health centre discovery, appointment booking, queue tracking, medical records, and emergency assistance.",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

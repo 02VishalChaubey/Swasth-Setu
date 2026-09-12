@@ -50,7 +50,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               <span className="material-symbols-outlined text-xl fill">local_hospital</span>
             </div>
             <div>
-              <span className="font-bold text-xl tracking-tight text-primary">Swasth Setu</span>
+              <span className="font-bold text-xl tracking-tight text-primary">Swasthya Rekha</span>
               <span className="hidden xl:inline-block ml-2 px-2 py-0.5 text-xs bg-primary-fixed text-on-primary-fixed rounded-full font-medium">
                 Rural Health Portal
               </span>

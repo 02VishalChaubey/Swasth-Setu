@@ -79,7 +79,7 @@ export const App: React.FC = () => {
           currentTab={currentTab}
           onSelectTab={handleNavigate}
           onEmergencyCall={() => handleOpenEmergencyCall('108', 'Emergency Ambulance Service')}
-          onOpenSettings={() => showToast('Swasth Setu Preferences: Notifications enabled, Low-data mode active.')}
+          onOpenSettings={() => showToast('Swasthya Rekha Preferences: Notifications enabled, Low-data mode active.')}
         />
 
         {/* Main Content Area */}

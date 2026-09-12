@@ -33,7 +33,7 @@ export const SideNav: React.FC<SideNavProps> = ({
             <span className="material-symbols-outlined text-lg fill">local_hospital</span>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-primary tracking-tight">Swasth Setu</h2>
+            <h2 className="text-xl font-bold text-primary tracking-tight">Swasthya Rekha</h2>
             <p className="text-xs text-on-surface-variant font-medium">Rural Health Portal</p>
           </div>
         </div>
@@ -93,7 +93,7 @@ export const SideNav: React.FC<SideNavProps> = ({
         </button>
         <button
           onClick={() => {
-            if (window.confirm('Are you sure you want to log out of your Swasth Setu session?')) {
+            if (window.confirm('Are you sure you want to log out of your Swasthya Rekha session?')) {
               window.location.reload();
             }
           }}

@@ -50,7 +50,7 @@ export const RecordsView: React.FC<RecordsViewProps> = ({ onOpenReportModal }) =
       facility: uploadFacility || 'Community Health Centre',
       provider: uploadProvider || 'Attending Physician',
       diagnosis: uploadSummary ? uploadSummary.slice(0, 40) : 'General Clinical Consultation',
-      summary: uploadSummary || 'Patient-uploaded digital health document verified by Swasth Setu records registry.',
+      summary: uploadSummary || 'Patient-uploaded digital health document verified by Swasthya Rekha records registry.',
     };
 
     setRecords([newRecord, ...records]);

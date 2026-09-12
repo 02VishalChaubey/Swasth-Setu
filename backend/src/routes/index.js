@@ -20,7 +20,7 @@ const adminRoutes = require('./admin.routes');
 router.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
-    service: 'Swasth Setu Main Backend API',
+    service: 'Swasthya Rekha Main Backend API',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });

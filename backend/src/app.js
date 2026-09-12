@@ -39,7 +39,7 @@ app.use('/api', generalLimiter);
 // Interactive OpenAPI / Swagger Documentation
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc, {
   customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Swasth Setu API Documentation (SIH 2026)'
+  customSiteTitle: 'Swasthya Rekha API Documentation (SIH 2026)'
 }));
 
 // Health Check

@@ -1,11 +1,11 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Swasth Setu – Rural Health Portal REST API",
+    "title": "Swasthya Rekha – Rural Health Portal REST API",
     "version": "1.0.0",
     "description": "Production REST API backend for Smart India Hackathon 2026. Powers rural healthcare delivery, digital triage, doctor appointments, live OPD queue tracking, Ayushman Bharat health records, and emergency SOS routing.",
     "contact": {
-      "name": "Swasth Setu SIH 2026 Team",
+      "name": "Swasthya Rekha SIH 2026 Team",
       "email": "support@swasthsetu.gov.in"
     }
   },

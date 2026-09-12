@@ -1,7 +1,7 @@
 const request = require('supertest');
 const app = require('../src/app');
 
-describe('Swasth Setu - Backend API Integration Tests', () => {
+describe('Swasthya Rekha - Backend API Integration Tests', () => {
 
   // 1. Health & Server Status
   describe('GET /health', () => {
